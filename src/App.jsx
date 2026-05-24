@@ -497,7 +497,7 @@ const save = async () => {
             <Textarea value={selected.resolution || ''} onChange={v => setSelected(s => ({ ...s, resolution: v }))} placeholder="Décrivez ce qui a été fait…" />
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn onClick={() => setSelected(null)}>Fermer</Btn>
+            <Btn danger onClick={async () => { await supabase.from('checks_menage').delete().eq('id', selected.id); onUpdate(); setSelected(null); toast('Check supprimé !') }}><i className="ti ti-trash" />Supprimer</Btn>
             <Btn primary onClick={saveResolution}><i className="ti ti-check" />Enregistrer</Btn>
           </div>
         </Modal>
@@ -655,7 +655,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             <Field label="Observations"><Textarea value={selected.observations || ''} onChange={v => setSelected(s => ({ ...s, observations: v }))} placeholder="Problèmes constatés, dommages…" rows={2} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
+    <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
           </div>
         </Modal>
       )}
