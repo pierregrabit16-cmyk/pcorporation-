@@ -497,7 +497,11 @@ const save = async () => {
             <Textarea value={selected.resolution || ''} onChange={v => setSelected(s => ({ ...s, resolution: v }))} placeholder="Décrivez ce qui a été fait…" />
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn danger onClick={async () => { await supabase.from('interventions').delete().eq('id', selected.id); onUpdate(); setSelected(null); toast('Intervention supprimée !') }}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn danger onClick={async () => {console.log('ID à supprimer:', selected.id)
+           const { data, error } = await supabase.from('interventions').delete().eq('id', selected.id)
+           console.log('Résultat delete:', data, 'Erreur:', error)
+           onUpdate(); setSelected(null); toast('Intervention supprimée !') 
+           }}><i className="ti ti-trash" />Supprimer</Btn>
             <Btn primary onClick={saveResolution}><i className="ti ti-check" />Enregistrer</Btn>
           </div>
         </Modal>
