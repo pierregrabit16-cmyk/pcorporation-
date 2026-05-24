@@ -382,8 +382,7 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
 const save = async () => {
     const titre = form.titre || `${form.type_intervention} — ${new Date().toLocaleDateString('fr-FR')}`
     const { error } = await supabase.from('interventions').insert([{ ...form, titre, statut: 'Ouvert', date_signalee: new Date().toISOString().split('T')[0] }])
-    if (!error) { setShowForm(false); setForm({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' }); onUpdate(); toast('Intervention créée !') }
-}
+    if (!error) { setShowForm(false); setForm({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' }); onUpdate(); toast('Intervention créée !') 
   }
 
   const changeStatut = async (id, statut) => {
