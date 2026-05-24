@@ -3,7 +3,6 @@ import { supabase } from './supabase'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const TECHNICIENS = ['Quentin 1', 'Quentin 2', 'Eric', 'Hugo', 'Guillaume', 'Jean-Phi', 'Jean Paul']
-const RECEPTION = ['Elena', 'Rosalie', 'Manon', 'Auréna', 'Laura', 'Pierre']
 const TYPES_INT = ['Électricité', 'Plomberie', 'Mobilier', 'Serrurerie', 'Climatisation', 'Piscine', 'Espaces verts', 'Ménage', 'Divers']
 const STATUTS_EMPL = ['Libre', 'Occupé', 'Départ', 'Ménage', 'Maintenance']
 const SOURCES_AVIS = ['Google', 'Booking', 'TripAdvisor', 'Abritel', 'Direct']
@@ -46,7 +45,7 @@ const Btn = ({ children, onClick, primary, danger, small, style = {} }) => (
 )
 
 const Modal = ({ title, onClose, children }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '60vh' }} onClick={e => e.target === e.currentTarget && onClose()}>
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '30vh' }} onClick={e => e.target === e.currentTarget && onClose()}>
     <div style={{ background: '#fff', borderRadius: 14, width: 520, maxHeight: '85vh', overflowY: 'auto', padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }} className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>{title}</div>
@@ -182,7 +181,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
         <StatCard label="Note moyenne" value={noteAvg} sub={`${commentaires.length} avis cette saison`} color="#3B6D11" icon="ti-star" onClick={() => setPage('commentaires')} />
       </div>
 
-      {/* Barre occupation */}
       <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '16px 18px', marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>État du camping</div>
@@ -213,7 +211,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Interventions récentes */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 500 }}>Interventions récentes</div>
@@ -235,7 +232,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
           </div>
         </div>
 
-        {/* Ménages du jour */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 500 }}>Checks ménage du jour</div>
@@ -380,13 +376,16 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
 
   const filtered = interventions.filter(i => filtre === 'Tous' || i.statut === filtre || (filtre === 'Urgente' && i.priorite === 'Urgente'))
 
-const save = async () => {
-  const titre = form.titre || `${form.type_intervention} — ${new Date().toLocaleDateString('fr-FR')}`
-  console.log('Données envoyées:', { ...form, titre })
-  const { data, error } = await supabase.from('interventions').insert([{ ...form, titre, statut: 'Ouvert', date_signalee: new Date().toISOString().split('T')[0] }])
-  console.log('Résultat:', data, 'Erreur:', error)
-  if (!error) { setShowForm(false); setForm({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' }); onUpdate(); toast('Intervention créée !') }
-}
+  const save = async () => {
+    const titre = form.titre || `${form.type_intervention} — ${new Date().toLocaleDateString('fr-FR')}`
+    const { error } = await supabase.from('interventions').insert([{ ...form, titre, statut: 'Ouvert', date_signalee: new Date().toISOString().split('T')[0] }])
+    if (!error) { setShowForm(false); setForm({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' }); onUpdate(); toast('Intervention créée !') }
+  }
+
+  const deleteIntervention = async (id) => {
+    await supabase.from('interventions').delete().eq('id', id)
+    onUpdate(); setSelected(null); toast('Intervention supprimée !')
+  }
 
   const changeStatut = async (id, statut) => {
     await supabase.from('interventions').update({ statut }).eq('id', id)
@@ -438,7 +437,7 @@ const save = async () => {
 
       {showForm && (
         <Modal title="Nouvelle intervention" onClose={() => setShowForm(false)}>
-          <Field label="Titre *"><Input value={form.titre} onChange={v => setForm(f => ({ ...f, titre: v }))} placeholder="Ex: Robinet cassé salle de bain" /></Field>
+          <Field label="Titre"><Input value={form.titre} onChange={v => setForm(f => ({ ...f, titre: v }))} placeholder="Ex: Robinet cassé salle de bain" /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Emplacement">
               <Select value={form.emplacement_id} onChange={v => setForm(f => ({ ...f, emplacement_id: v }))}>
@@ -498,11 +497,8 @@ const save = async () => {
             <Textarea value={selected.resolution || ''} onChange={v => setSelected(s => ({ ...s, resolution: v }))} placeholder="Décrivez ce qui a été fait…" />
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn danger onClick={async () => {console.log('ID à supprimer:', selected.id)
-           const { data, error } = await supabase.from('interventions').delete().eq('id', selected.id)
-           console.log('Résultat delete:', data, 'Erreur:', error)
-           onUpdate(); setSelected(null); toast('Intervention supprimée !') 
-           }}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn danger onClick={() => deleteIntervention(selected.id)}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn onClick={() => setSelected(null)}>Fermer</Btn>
             <Btn primary onClick={saveResolution}><i className="ti ti-check" />Enregistrer</Btn>
           </div>
         </Modal>
@@ -536,6 +532,11 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
     setShowForm(false); setForm({ emplacement_id: '', assigne_a: '', client_partant: '', heure_depart: '' }); onUpdate(); toast('Check créé !')
   }
 
+  const deleteMenage = async (id) => {
+    await supabase.from('checks_menage').delete().eq('id', id)
+    onUpdate(); setSelected(null); toast('Check supprimé !')
+  }
+
   const toggleCheck = async (key) => {
     const newVal = !selected[key]
     await supabase.from('checks_menage').update({ [key]: newVal }).eq('id', selected.id)
@@ -563,36 +564,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             }}>{f}</button>
           ))}
         </div>
-        <Btn onClick={() => document.getElementById('import-csv').click()}><i className="ti ti-upload" />Importer CSV</Btn>
-<input id="import-csv" type="file" accept=".csv" style={{ display: 'none' }} onChange={async (e) => {
-  const file = e.target.files[0]
-  if (!file) return
-  const text = await file.text()
-  const lines = text.split('\n').slice(1).filter(l => l.trim())
-  for (const line of lines) {
-    const cols = line.split(',').map(c => c.trim().replace(/"/g, ''))
-    const client = cols[0]
-    const mh = cols[1]
-    const menageFait = cols[4] === 'TRUE'
-    const quiMenage = cols[5] || ''
-    const checkFait = cols[6] === 'TRUE'
-    const quiCheck = cols[7] || ''
-    if (!mh) continue
-    const { data: empl } = await supabase.from('emplacements').select('id').eq('numero', mh).single()
-    if (!empl) continue
-    const statut = checkFait ? 'Terminé' : menageFait ? 'En cours' : 'A faire'
-    await supabase.from('checks_menage').insert([{
-      emplacement_id: empl.id,
-      client_partant: client || '',
-      assigne_a: quiMenage,
-      heure_depart: quiCheck,
-      statut,
-      date_check: new Date().toISOString().split('T')[0]
-    }])
-  }
-  onUpdate(); toast('Checks importés !')
-  e.target.value = ''
-}} />
+        <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Nouveau check</Btn>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
@@ -639,7 +611,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
           <Field label="Assigné à">
             <Select value={form.assigne_a} onChange={v => setForm(f => ({ ...f, assigne_a: v }))}>
               <option value="">Non assigné</option>
-              {RECEPTION.map(t => <option key={t}>{t}</option>)}
+              {TECHNICIENS.map(t => <option key={t}>{t}</option>)}
             </Select>
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
@@ -689,12 +661,8 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             <Field label="Observations"><Textarea value={selected.observations || ''} onChange={v => setSelected(s => ({ ...s, observations: v }))} placeholder="Problèmes constatés, dommages…" rows={2} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-          <Btn danger onClick={async () => { 
-  console.log('ID à supprimer:', selected.id)
-  const { data, error } = await supabase.from('checks_menage').delete().eq('id', selected.id)
-  console.log('Résultat delete:', data, 'Erreur:', error)
-  onUpdate(); setSelected(null); toast('Check supprimé !') 
-}}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn danger onClick={() => deleteMenage(selected.id)}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
           </div>
         </Modal>
       )}
