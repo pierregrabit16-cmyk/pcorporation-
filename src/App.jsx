@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const TECHNICIENS = ['Quentin 1', 'Quentin 2', 'Eric', 'Hugo', 'Guillaume', 'Jean-Phi', 'Jean Paul']
+const RECEPTION = ['Elena', 'Rosalie', 'Manon', 'Auréna', 'Laura', 'Pierre']
 const TYPES_INT = ['Électricité', 'Plomberie', 'Mobilier', 'Serrurerie', 'Climatisation', 'Piscine', 'Espaces verts', 'Ménage', 'Divers']
 const STATUTS_EMPL = ['Libre', 'Occupé', 'Départ', 'Ménage', 'Maintenance']
 const SOURCES_AVIS = ['Google', 'Booking', 'TripAdvisor', 'Abritel', 'Direct']
@@ -609,7 +610,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
           <Field label="Assigné à">
             <Select value={form.assigne_a} onChange={v => setForm(f => ({ ...f, assigne_a: v }))}>
               <option value="">Non assigné</option>
-              {TECHNICIENS.map(t => <option key={t}>{t}</option>)}
+              {RECEPTION.map(t => <option key={t}>{t}</option>)}
             </Select>
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
