@@ -569,20 +569,24 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
   if (!file) return
   const text = await file.text()
   const lines = text.split('\n').slice(1).filter(l => l.trim())
-  const headers = text.split('\n')[0].split(',').map(h => h.trim().replace(/"/g, ''))
-  const idx = { client: headers.indexOf('Client'), mh: headers.indexOf('MH'), qui: headers.indexOf('Qui ?'), heure: headers.indexOf("Heure d'arrivée") }
   for (const line of lines) {
     const cols = line.split(',').map(c => c.trim().replace(/"/g, ''))
-    const mh = cols[idx.mh]
+    const client = cols[0]
+    const mh = cols[1]
+    const menageFait = cols[4] === 'TRUE'
+    const quiMenage = cols[5] || ''
+    const checkFait = cols[6] === 'TRUE'
+    const quiCheck = cols[7] || ''
     if (!mh) continue
     const { data: empl } = await supabase.from('emplacements').select('id').eq('numero', mh).single()
     if (!empl) continue
+    const statut = checkFait ? 'Terminé' : menageFait ? 'En cours' : 'A faire'
     await supabase.from('checks_menage').insert([{
       emplacement_id: empl.id,
-      client_partant: cols[idx.client] || '',
-      assigne_a: cols[idx.qui] || '',
-      heure_depart: cols[idx.heure] || '',
-      statut: 'A faire',
+      client_partant: client || '',
+      assigne_a: quiMenage,
+      heure_depart: quiCheck,
+      statut,
       date_check: new Date().toISOString().split('T')[0]
     }])
   }
