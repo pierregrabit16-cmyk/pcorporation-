@@ -655,7 +655,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             <Field label="Observations"><Textarea value={selected.observations || ''} onChange={v => setSelected(s => ({ ...s, observations: v }))} placeholder="Problèmes constatés, dommages…" rows={2} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-    <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
+          <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
           </div>
         </Modal>
       )}
