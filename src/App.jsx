@@ -45,7 +45,7 @@ const Btn = ({ children, onClick, primary, danger, small, style = {} }) => (
 )
 
 const Modal = ({ title, onClose, children }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '15vh' }} onClick={e => e.target === e.currentTarget && onClose()}>
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '30vh' }} onClick={e => e.target === e.currentTarget && onClose()}>
     <div style={{ background: '#fff', borderRadius: 14, width: 520, maxHeight: '85vh', overflowY: 'auto', padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }} className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>{title}</div>
