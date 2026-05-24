@@ -563,7 +563,32 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             }}>{f}</button>
           ))}
         </div>
-        <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Nouveau check</Btn>
+        <Btn onClick={() => document.getElementById('import-csv').click()}><i className="ti ti-upload" />Importer CSV</Btn>
+<input id="import-csv" type="file" accept=".csv" style={{ display: 'none' }} onChange={async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const text = await file.text()
+  const lines = text.split('\n').slice(1).filter(l => l.trim())
+  const headers = text.split('\n')[0].split(',').map(h => h.trim().replace(/"/g, ''))
+  const idx = { client: headers.indexOf('Client'), mh: headers.indexOf('MH'), qui: headers.indexOf('Qui ?'), heure: headers.indexOf("Heure d'arrivée") }
+  for (const line of lines) {
+    const cols = line.split(',').map(c => c.trim().replace(/"/g, ''))
+    const mh = cols[idx.mh]
+    if (!mh) continue
+    const { data: empl } = await supabase.from('emplacements').select('id').eq('numero', mh).single()
+    if (!empl) continue
+    await supabase.from('checks_menage').insert([{
+      emplacement_id: empl.id,
+      client_partant: cols[idx.client] || '',
+      assigne_a: cols[idx.qui] || '',
+      heure_depart: cols[idx.heure] || '',
+      statut: 'A faire',
+      date_check: new Date().toISOString().split('T')[0]
+    }])
+  }
+  onUpdate(); toast('Checks importés !')
+  e.target.value = ''
+}} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
