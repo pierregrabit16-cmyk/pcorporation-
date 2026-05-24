@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './supabase'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 const TECHNICIENS = ['Quentin 1', 'Quentin 2', 'Eric', 'Hugo', 'Guillaume', 'Jean-Phi', 'Jean Paul']
+const RECEPTION = ['Elena', 'Rosalie', 'Manon', 'Auréna', 'Laura', 'Pierre']
 const TYPES_INT = ['Électricité', 'Plomberie', 'Mobilier', 'Serrurerie', 'Climatisation', 'Piscine', 'Espaces verts', 'Ménage', 'Divers']
 const STATUTS_EMPL = ['Libre', 'Occupé', 'Départ', 'Ménage', 'Maintenance']
 const SOURCES_AVIS = ['Google', 'Booking', 'TripAdvisor', 'Abritel', 'Direct']
@@ -89,12 +89,12 @@ const Toast = ({ msg, onDone }) => {
   )
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
 const NAV = [
   { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Tableau de bord' },
   { id: 'plan', icon: 'ti-map-2', label: 'Plan du camping' },
   { id: 'interventions', icon: 'ti-tool', label: 'Interventions' },
-  { id: 'menage', icon: 'ti-sparkles', label: 'Checks ménage' },
+  { id: 'menage', icon: 'ti-home-2', label: 'Ménage' },
+  { id: 'checks', icon: 'ti-sparkles', label: 'Checks' },
   { id: 'commentaires', icon: 'ti-message-circle', label: 'Commentaires' },
 ]
 
@@ -138,8 +138,7 @@ const Sidebar = ({ page, setPage, counts }) => (
   </div>
 )
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage }) => {
+const Dashboard = ({ emplacements, interventions, menages, checks, commentaires, setPage }) => {
   const stats = {
     total: emplacements.length,
     occupes: emplacements.filter(e => e.statut === 'Occupé').length,
@@ -150,7 +149,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
   const tx = stats.total ? Math.round(stats.occupes / stats.total * 100) : 0
   const intOuvertes = interventions.filter(i => i.statut !== 'Terminé').length
   const intUrgentes = interventions.filter(i => i.priorite === 'Urgente' && i.statut !== 'Terminé').length
-  const menageTodo = menages.filter(m => m.statut !== 'Terminé').length
   const noteAvg = commentaires.length ? (commentaires.reduce((a, c) => a + (c.note || 0), 0) / commentaires.length).toFixed(1) : '—'
 
   const StatCard = ({ label, value, sub, color, icon, onClick }) => (
@@ -173,14 +171,12 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
         </div>
         <div style={{ fontSize: 22, fontWeight: 600 }}>Bonjour 👋</div>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         <StatCard label="Taux d'occupation" value={`${tx}%`} sub={`${stats.occupes}/${stats.total} emplacements`} color="#3B6D11" icon="ti-home" />
         <StatCard label="Départs aujourd'hui" value={stats.departs} sub="À libérer" color="#185FA5" icon="ti-door-exit" onClick={() => setPage('plan')} />
         <StatCard label="Interventions ouvertes" value={intOuvertes} sub={intUrgentes > 0 ? `⚠️ ${intUrgentes} urgente(s)` : 'Aucune urgence'} color={intUrgentes > 0 ? '#A32D2D' : '#BA7517'} icon="ti-tool" onClick={() => setPage('interventions')} />
         <StatCard label="Note moyenne" value={noteAvg} sub={`${commentaires.length} avis cette saison`} color="#3B6D11" icon="ti-star" onClick={() => setPage('commentaires')} />
       </div>
-
       <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '16px 18px', marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>État du camping</div>
@@ -209,7 +205,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
           <span>{stats.maintenance} maintenance</span>
         </div>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -231,33 +226,23 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
             ))}
           </div>
         </div>
-
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>Checks ménage du jour</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>Ménages du jour</div>
             <Btn small onClick={() => setPage('menage')}>Voir tout <i className="ti ti-arrow-right" /></Btn>
           </div>
           <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, overflow: 'hidden' }}>
             {menages.slice(0, 5).length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucun check aujourd'hui</div>
-            ) : menages.slice(0, 5).map(m => {
-              const checks = ['literie', 'salle_de_bain', 'cuisine', 'salon', 'terrasse', 'inventaire', 'photos_prises']
-              const done = checks.filter(k => m[k]).length
-              const pct = Math.round(done / checks.length * 100)
-              return (
-                <div key={m.id} style={{ padding: '10px 14px', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                    <Pill label={m.statut} />
-                    <div style={{ fontSize: 12, fontWeight: 500 }}>{m.emplacements?.numero}</div>
-                    <div style={{ fontSize: 11, color: '#9C9B96', flex: 1 }}>{m.assigne_a || 'Non assigné'}</div>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: pct === 100 ? '#3B6D11' : '#BA7517' }}>{pct}%</div>
-                  </div>
-                  <div style={{ height: 3, background: '#F1EFE8', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#639922' : '#EF9F27', transition: 'width .3s' }} />
-                  </div>
+              <div style={{ padding: 20, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucun ménage</div>
+            ) : menages.slice(0, 5).map(m => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+                <Pill label={m.statut} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500 }}>{m.emplacements?.numero}</div>
+                  <div style={{ fontSize: 11, color: '#9C9B96' }}>{m.assigne_a || 'Non assigné'}</div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -265,7 +250,6 @@ const Dashboard = ({ emplacements, interventions, menages, commentaires, setPage
   )
 }
 
-// ── Plan du camping ───────────────────────────────────────────────────────────
 const Plan = ({ emplacements, onUpdate, toast }) => {
   const [filtre, setFiltre] = useState('Tous')
   const [search, setSearch] = useState('')
@@ -281,7 +265,6 @@ const Plan = ({ emplacements, onUpdate, toast }) => {
   })
 
   const counts = STATUTS_EMPL.reduce((a, s) => ({ ...a, [s]: emplacements.filter(e => e.statut === s).length }), {})
-
   const emplColors = {
     'Libre': { bg: '#EAF3DE', border: '#97C459', dot: null },
     'Occupé': { bg: '#FAEEDA', border: '#FAC775', dot: null },
@@ -311,7 +294,6 @@ const Plan = ({ emplacements, onUpdate, toast }) => {
           </button>
         ))}
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
         {filtered.map(e => {
           const c = emplColors[e.statut] || emplColors['Libre']
@@ -328,20 +310,17 @@ const Plan = ({ emplacements, onUpdate, toast }) => {
           )
         })}
       </div>
-
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: '#9C9B96' }}>
           <i className="ti ti-search-off" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
           Aucun emplacement trouvé
         </div>
       )}
-
       {selected && (
         <Modal title={`Emplacement ${selected.numero}`} onClose={() => setSelected(null)}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             <Pill label={selected.statut} />
             <span style={{ background: '#F1EFE8', color: '#5F5E5A', border: '0.5px solid #B4B2A9', borderRadius: 20, padding: '2px 9px', fontSize: 11 }}>{selected.modele}</span>
-            <span style={{ background: '#F1EFE8', color: '#5F5E5A', border: '0.5px solid #B4B2A9', borderRadius: 20, padding: '2px 9px', fontSize: 11 }}>TP {selected.capacite} · {selected.jour_rotation}</span>
             {selected.placette && <span style={{ background: '#EAF3DE', color: '#3B6D11', border: '0.5px solid #97C459', borderRadius: 20, padding: '2px 9px', fontSize: 11 }}>Placette</span>}
           </div>
           {selected.client_actuel && (
@@ -367,24 +346,26 @@ const Plan = ({ emplacements, onUpdate, toast }) => {
   )
 }
 
-// ── Interventions ─────────────────────────────────────────────────────────────
 const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
   const [filtre, setFiltre] = useState('Tous')
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [selectedIds, setSelectedIds] = useState([])
   const [form, setForm] = useState({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' })
 
   const filtered = interventions.filter(i => filtre === 'Tous' || i.statut === filtre || (filtre === 'Urgente' && i.priorite === 'Urgente'))
+
+  const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
+  const toggleSelectAll = () => { setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map(i => i.id)) }
+  const deleteSelected = async () => {
+    await Promise.all(selectedIds.map(id => supabase.from('interventions').delete().eq('id', id)))
+    setSelectedIds([]); onUpdate(); toast(`${selectedIds.length} intervention(s) supprimée(s) !`)
+  }
 
   const save = async () => {
     const titre = form.titre || `${form.type_intervention} — ${new Date().toLocaleDateString('fr-FR')}`
     const { error } = await supabase.from('interventions').insert([{ ...form, titre, statut: 'Ouvert', date_signalee: new Date().toISOString().split('T')[0] }])
     if (!error) { setShowForm(false); setForm({ titre: '', emplacement_id: '', type_intervention: 'Électricité', priorite: 'Normale', assigne_a: '', description: '' }); onUpdate(); toast('Intervention créée !') }
-  }
-
-  const deleteIntervention = async (id) => {
-    await supabase.from('interventions').delete().eq('id', id)
-    onUpdate(); setSelected(null); toast('Intervention supprimée !')
   }
 
   const changeStatut = async (id, statut) => {
@@ -409,32 +390,33 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
             }}>{f} {f !== 'Tous' && f !== 'Urgente' ? `(${interventions.filter(i => i.statut === f).length})` : ''}</button>
           ))}
         </div>
+        {selectedIds.length > 0 && <Btn danger onClick={deleteSelected}><i className="ti ti-trash" />Supprimer ({selectedIds.length})</Btn>}
         <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Nouvelle</Btn>
       </div>
-
       <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 120px 90px', background: '#F7F6F3', borderBottom: '0.5px solid rgba(0,0,0,0.08)', padding: '8px 14px', fontSize: 10, fontWeight: 600, color: '#9C9B96', textTransform: 'uppercase', letterSpacing: '.04em', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 80px 110px 110px 120px 90px', background: '#F7F6F3', borderBottom: '0.5px solid rgba(0,0,0,0.08)', padding: '8px 14px', fontSize: 10, fontWeight: 600, color: '#9C9B96', textTransform: 'uppercase', letterSpacing: '.04em', gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={selectedIds.length === filtered.length && filtered.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
           <div>Titre / Description</div><div>Empl.</div><div>Type</div><div>Priorité</div><div>Assigné à</div><div>Statut</div>
         </div>
         {filtered.length === 0 ? (
           <div style={{ padding: 30, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucune intervention</div>
         ) : filtered.map(i => (
-          <div key={i.id} onClick={() => setSelected({ ...i })} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 110px 120px 90px', padding: '11px 14px', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer', gap: 8, alignItems: 'center', transition: 'background .1s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#F7F6F3'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div>
+          <div key={i.id} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 80px 110px 110px 120px 90px', padding: '11px 14px', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer', gap: 8, alignItems: 'center', background: selectedIds.includes(i.id) ? '#F0F7E8' : 'transparent' }}
+            onMouseEnter={e => e.currentTarget.style.background = selectedIds.includes(i.id) ? '#F0F7E8' : '#F7F6F3'}
+            onMouseLeave={e => e.currentTarget.style.background = selectedIds.includes(i.id) ? '#F0F7E8' : 'transparent'}>
+            <input type="checkbox" checked={selectedIds.includes(i.id)} onChange={e => toggleSelect(i.id, e)} onClick={e => e.stopPropagation()} style={{ cursor: 'pointer' }} />
+            <div onClick={() => setSelected({ ...i })}>
               <div style={{ fontSize: 12, fontWeight: 500 }}>{i.titre}</div>
               <div style={{ fontSize: 11, color: '#9C9B96', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.description}</div>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 500 }}>{i.emplacements?.numero || '—'}</div>
-            <div style={{ fontSize: 11, color: '#6B6A65' }}>{i.type_intervention}</div>
-            <Pill label={i.priorite} />
-            <div style={{ fontSize: 11, color: '#6B6A65' }}>{i.assigne_a || <em style={{ opacity: .5 }}>Non assigné</em>}</div>
-            <Pill label={i.statut} />
+            <div style={{ fontSize: 12, fontWeight: 500 }} onClick={() => setSelected({ ...i })}>{i.emplacements?.numero || '—'}</div>
+            <div style={{ fontSize: 11, color: '#6B6A65' }} onClick={() => setSelected({ ...i })}>{i.type_intervention}</div>
+            <div onClick={() => setSelected({ ...i })}><Pill label={i.priorite} /></div>
+            <div style={{ fontSize: 11, color: '#6B6A65' }} onClick={() => setSelected({ ...i })}>{i.assigne_a || <em style={{ opacity: .5 }}>Non assigné</em>}</div>
+            <div onClick={() => setSelected({ ...i })}><Pill label={i.statut} /></div>
           </div>
         ))}
       </div>
-
       {showForm && (
         <Modal title="Nouvelle intervention" onClose={() => setShowForm(false)}>
           <Field label="Titre"><Input value={form.titre} onChange={v => setForm(f => ({ ...f, titre: v }))} placeholder="Ex: Robinet cassé salle de bain" /></Field>
@@ -469,7 +451,6 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
           </div>
         </Modal>
       )}
-
       {selected && (
         <Modal title={`Intervention — ${selected.titre}`} onClose={() => setSelected(null)}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -497,8 +478,7 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
             <Textarea value={selected.resolution || ''} onChange={v => setSelected(s => ({ ...s, resolution: v }))} placeholder="Décrivez ce qui a été fait…" />
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn danger onClick={() => deleteIntervention(selected.id)}><i className="ti ti-trash" />Supprimer</Btn>
-            <Btn onClick={() => setSelected(null)}>Fermer</Btn>
+            <Btn danger onClick={async () => { await supabase.from('interventions').delete().eq('id', selected.id); onUpdate(); setSelected(null); toast('Intervention supprimée !') }}><i className="ti ti-trash" />Supprimer</Btn>
             <Btn primary onClick={saveResolution}><i className="ti ti-check" />Enregistrer</Btn>
           </div>
         </Modal>
@@ -507,8 +487,120 @@ const Interventions = ({ interventions, emplacements, onUpdate, toast }) => {
   )
 }
 
-// ── Checks Ménage ─────────────────────────────────────────────────────────────
-const CHECKS = [
+const Menage = ({ menages, emplacements, onUpdate, toast }) => {
+  const [showForm, setShowForm] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [filtre, setFiltre] = useState('Tous')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [form, setForm] = useState({ emplacement_id: '', assigne_a: '', client: '', date_menage: new Date().toISOString().split('T')[0] })
+
+  const filtered = menages.filter(m => filtre === 'Tous' || m.statut === filtre)
+  const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
+  const toggleSelectAll = () => { setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map(m => m.id)) }
+  const deleteSelected = async () => {
+    await Promise.all(selectedIds.map(id => supabase.from('menages').delete().eq('id', id)))
+    setSelectedIds([]); onUpdate(); toast(`${selectedIds.length} ménage(s) supprimé(s) !`)
+  }
+
+  const save = async () => {
+    if (!form.emplacement_id) return
+    await supabase.from('menages').insert([{ ...form, statut: 'A faire' }])
+    setShowForm(false); setForm({ emplacement_id: '', assigne_a: '', client: '', date_menage: new Date().toISOString().split('T')[0] }); onUpdate(); toast('Ménage créé !')
+  }
+
+  const envoyerEnCheck = async (m) => {
+    await supabase.from('checks_menage').insert([{ emplacement_id: m.emplacement_id, client_partant: m.client || '', assigne_a: '', statut: 'A faire', date_check: new Date().toISOString().split('T')[0] }])
+    await supabase.from('menages').update({ statut: 'Terminé' }).eq('id', m.id)
+    onUpdate(); setSelected(null); toast('Envoyé en check !')
+  }
+
+  return (
+    <div className="fade-in">
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, flex: 1 }}>
+          {['Tous', 'A faire', 'En cours', 'Terminé'].map(f => (
+            <button key={f} onClick={() => setFiltre(f)} style={{ padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: 'pointer', background: filtre === f ? '#639922' : '#fff', color: filtre === f ? '#fff' : '#6B6A65', border: filtre === f ? 'none' : '0.5px solid rgba(0,0,0,0.15)' }}>{f}</button>
+          ))}
+        </div>
+        {selectedIds.length > 0 && <Btn danger onClick={deleteSelected}><i className="ti ti-trash" />Supprimer ({selectedIds.length})</Btn>}
+        <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Nouveau</Btn>
+      </div>
+      <div style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr 100px', background: '#F7F6F3', borderBottom: '0.5px solid rgba(0,0,0,0.08)', padding: '8px 14px', fontSize: 10, fontWeight: 600, color: '#9C9B96', textTransform: 'uppercase', letterSpacing: '.04em', gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={selectedIds.length === filtered.length && filtered.length > 0} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+          <div>Emplacement</div><div>Client</div><div>Assigné à</div><div>Statut</div>
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{ padding: 30, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucun ménage</div>
+        ) : filtered.map(m => (
+          <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr 100px', padding: '11px 14px', borderBottom: '0.5px solid rgba(0,0,0,0.06)', gap: 8, alignItems: 'center', background: selectedIds.includes(m.id) ? '#F0F7E8' : 'transparent', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = selectedIds.includes(m.id) ? '#F0F7E8' : '#F7F6F3'}
+            onMouseLeave={e => e.currentTarget.style.background = selectedIds.includes(m.id) ? '#F0F7E8' : 'transparent'}>
+            <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={e => toggleSelect(m.id, e)} onClick={e => e.stopPropagation()} style={{ cursor: 'pointer' }} />
+            <div onClick={() => setSelected(m)} style={{ fontSize: 12, fontWeight: 500 }}>{m.emplacements?.numero} <span style={{ fontSize: 11, color: '#9C9B96', fontWeight: 400 }}>{m.emplacements?.modele}</span></div>
+            <div onClick={() => setSelected(m)} style={{ fontSize: 12 }}>{m.client || <em style={{ opacity: .5, fontSize: 11 }}>—</em>}</div>
+            <div onClick={() => setSelected(m)} style={{ fontSize: 12 }}>{m.assigne_a || <em style={{ opacity: .5, fontSize: 11 }}>Non assigné</em>}</div>
+            <div onClick={() => setSelected(m)}><Pill label={m.statut} /></div>
+          </div>
+        ))}
+      </div>
+      {showForm && (
+        <Modal title="Nouveau ménage" onClose={() => setShowForm(false)}>
+          <Field label="Emplacement *">
+            <Select value={form.emplacement_id} onChange={v => setForm(f => ({ ...f, emplacement_id: v }))}>
+              <option value="">Choisir…</option>
+              {emplacements.map(e => <option key={e.id} value={e.id}>{e.numero} — {e.modele}</option>)}
+            </Select>
+          </Field>
+          <Field label="Client"><Input value={form.client} onChange={v => setForm(f => ({ ...f, client: v }))} placeholder="Nom du client" /></Field>
+          <Field label="Date"><Input type="date" value={form.date_menage} onChange={v => setForm(f => ({ ...f, date_menage: v }))} /></Field>
+          <Field label="Assigné à">
+            <Select value={form.assigne_a} onChange={v => setForm(f => ({ ...f, assigne_a: v }))}>
+              <option value="">Non assigné</option>
+              {RECEPTION.map(t => <option key={t}>{t}</option>)}
+            </Select>
+          </Field>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
+            <Btn onClick={() => setShowForm(false)}>Annuler</Btn>
+            <Btn primary onClick={save}><i className="ti ti-check" />Créer</Btn>
+          </div>
+        </Modal>
+      )}
+      {selected && (
+        <Modal title={`Ménage — Empl. ${selected.emplacements?.numero}`} onClose={() => setSelected(null)}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <Pill label={selected.statut} />
+            {selected.assigne_a && <span style={{ background: '#E6F1FB', color: '#185FA5', border: '0.5px solid #85B7EB', borderRadius: 20, padding: '2px 9px', fontSize: 11 }}>{selected.assigne_a}</span>}
+          </div>
+          <div style={{ background: '#F7F6F3', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: '#6B6A65' }}>
+            <div>Client : <strong>{selected.client || '—'}</strong></div>
+            <div style={{ marginTop: 4 }}>Date : <strong>{selected.date_menage}</strong></div>
+          </div>
+          <Field label="Changer le statut">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['A faire', 'En cours', 'Terminé'].map(s => (
+                <button key={s} onClick={async () => { await supabase.from('menages').update({ statut: s }).eq('id', selected.id); onUpdate(); setSelected(prev => ({ ...prev, statut: s })); toast('Statut mis à jour !') }} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', background: selected.statut === s ? '#639922' : '#fff', color: selected.statut === s ? '#fff' : '#6B6A65', border: selected.statut === s ? 'none' : '0.5px solid rgba(0,0,0,0.15)' }}>{s}</button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Assigné à">
+            <Select value={selected.assigne_a || ''} onChange={async v => { await supabase.from('menages').update({ assigne_a: v }).eq('id', selected.id); setSelected(prev => ({ ...prev, assigne_a: v })); onUpdate() }}>
+              <option value="">Non assigné</option>
+              {RECEPTION.map(t => <option key={t}>{t}</option>)}
+            </Select>
+          </Field>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
+            <Btn danger onClick={async () => { await supabase.from('menages').delete().eq('id', selected.id); onUpdate(); setSelected(null); toast('Ménage supprimé !') }}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn onClick={() => setSelected(null)}>Fermer</Btn>
+            <Btn primary onClick={() => envoyerEnCheck(selected)}><i className="ti ti-arrow-right" />Envoyer en check</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+const CHECKS_LIST = [
   { key: 'literie', label: 'Literie — changer draps, oreillers, couvertures', icon: 'ti-bed' },
   { key: 'salle_de_bain', label: 'Salle de bain — nettoyage complet, serviettes', icon: 'ti-bath' },
   { key: 'cuisine', label: 'Cuisine — plaques, four, réfrigérateur, vaisselle', icon: 'ti-soup' },
@@ -518,13 +610,20 @@ const CHECKS = [
   { key: 'photos_prises', label: 'Photos prises et envoyées', icon: 'ti-camera' },
 ]
 
-const Menage = ({ menages, emplacements, onUpdate, toast }) => {
+const Checks = ({ checks, emplacements, onUpdate, toast }) => {
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState(null)
   const [filtre, setFiltre] = useState('Tous')
+  const [selectedIds, setSelectedIds] = useState([])
   const [form, setForm] = useState({ emplacement_id: '', assigne_a: '', client_partant: '', heure_depart: '' })
 
-  const filtered = menages.filter(m => filtre === 'Tous' || m.statut === filtre)
+  const filtered = checks.filter(m => filtre === 'Tous' || m.statut === filtre)
+  const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
+  const toggleSelectAll = () => { setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map(m => m.id)) }
+  const deleteSelected = async () => {
+    await Promise.all(selectedIds.map(id => supabase.from('checks_menage').delete().eq('id', id)))
+    setSelectedIds([]); onUpdate(); toast(`${selectedIds.length} check(s) supprimé(s) !`)
+  }
 
   const save = async () => {
     if (!form.emplacement_id) return
@@ -532,20 +631,15 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
     setShowForm(false); setForm({ emplacement_id: '', assigne_a: '', client_partant: '', heure_depart: '' }); onUpdate(); toast('Check créé !')
   }
 
-  const deleteMenage = async (id) => {
-    await supabase.from('checks_menage').delete().eq('id', id)
-    onUpdate(); setSelected(null); toast('Check supprimé !')
-  }
-
   const toggleCheck = async (key) => {
     const newVal = !selected[key]
     await supabase.from('checks_menage').update({ [key]: newVal }).eq('id', selected.id)
     const updated = { ...selected, [key]: newVal }
-    const allDone = CHECKS.every(c => updated[c.key])
+    const allDone = CHECKS_LIST.every(c => updated[c.key])
     if (allDone && updated.statut !== 'Terminé') {
       await supabase.from('checks_menage').update({ statut: 'Terminé' }).eq('id', selected.id)
       updated.statut = 'Terminé'
-    } else if (!allDone && updated.statut === 'A faire' && CHECKS.some(c => updated[c.key])) {
+    } else if (!allDone && updated.statut === 'A faire' && CHECKS_LIST.some(c => updated[c.key])) {
       await supabase.from('checks_menage').update({ statut: 'En cours' }).eq('id', selected.id)
       updated.statut = 'En cours'
     }
@@ -557,47 +651,64 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6, flex: 1 }}>
           {['Tous', 'A faire', 'En cours', 'Terminé'].map(f => (
-            <button key={f} onClick={() => setFiltre(f)} style={{
-              padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-              background: filtre === f ? '#639922' : '#fff', color: filtre === f ? '#fff' : '#6B6A65',
-              border: filtre === f ? 'none' : '0.5px solid rgba(0,0,0,0.15)'
-            }}>{f}</button>
+            <button key={f} onClick={() => setFiltre(f)} style={{ padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: 'pointer', background: filtre === f ? '#639922' : '#fff', color: filtre === f ? '#fff' : '#6B6A65', border: filtre === f ? 'none' : '0.5px solid rgba(0,0,0,0.15)' }}>{f}</button>
           ))}
         </div>
+        {selectedIds.length > 0 && <Btn danger onClick={deleteSelected}><i className="ti ti-trash" />Supprimer ({selectedIds.length})</Btn>}
+        <Btn onClick={() => document.getElementById('import-csv').click()}><i className="ti ti-upload" />Importer CSV</Btn>
+        <input id="import-csv" type="file" accept=".csv" style={{ display: 'none' }} onChange={async (e) => {
+          const file = e.target.files[0]
+          if (!file) return
+          const text = await file.text()
+          const lines = text.split('\n').slice(1).filter(l => l.trim())
+          for (const line of lines) {
+            const cols = line.split(',').map(c => c.trim().replace(/"/g, ''))
+            const client = cols[0], mh = cols[1], menageFait = cols[4] === 'TRUE', quiMenage = cols[5] || '', checkFait = cols[6] === 'TRUE'
+            if (!mh) continue
+            const { data: empl } = await supabase.from('emplacements').select('id').eq('numero', mh).single()
+            if (!empl) continue
+            const statut = checkFait ? 'Terminé' : menageFait ? 'En cours' : 'A faire'
+            await supabase.from('checks_menage').insert([{ emplacement_id: empl.id, client_partant: client || '', assigne_a: quiMenage, statut, date_check: new Date().toISOString().split('T')[0] }])
+          }
+          onUpdate(); toast('Checks importés !'); e.target.value = ''
+        }} />
         <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Nouveau check</Btn>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
         {filtered.map(m => {
-          const done = CHECKS.filter(c => m[c.key]).length
-          const pct = Math.round(done / CHECKS.length * 100)
+          const done = CHECKS_LIST.filter(c => m[c.key]).length
+          const pct = Math.round(done / CHECKS_LIST.length * 100)
           return (
-            <div key={m.id} onClick={() => setSelected({ ...m })} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', transition: 'box-shadow .15s' }}
+            <div key={m.id} style={{ background: selectedIds.includes(m.id) ? '#F0F7E8' : '#fff', border: `0.5px solid ${selectedIds.includes(m.id) ? '#97C459' : 'rgba(0,0,0,0.1)'}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', transition: 'box-shadow .15s' }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.08)'}
               onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>Empl. {m.emplacements?.numero}</div>
-                  <div style={{ fontSize: 11, color: '#9C9B96' }}>{m.emplacements?.modele}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={selectedIds.includes(m.id)} onChange={e => toggleSelect(m.id, e)} onClick={e => e.stopPropagation()} style={{ cursor: 'pointer' }} />
+                  <div onClick={() => setSelected({ ...m })}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>Empl. {m.emplacements?.numero}</div>
+                    <div style={{ fontSize: 11, color: '#9C9B96' }}>{m.emplacements?.modele}</div>
+                  </div>
                 </div>
-                <Pill label={m.statut} />
+                <div onClick={() => setSelected({ ...m })}><Pill label={m.statut} /></div>
               </div>
-              {m.client_partant && <div style={{ fontSize: 11, color: '#6B6A65', marginBottom: 8 }}>↩ {m.client_partant} {m.heure_depart && `· ${m.heure_depart}`}</div>}
-              <div style={{ fontSize: 11, color: '#6B6A65', marginBottom: 8 }}>{m.assigne_a || <em style={{ opacity: .5 }}>Non assigné</em>}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1, height: 4, background: '#F1EFE8', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#639922' : '#EF9F27', transition: 'width .3s' }} />
+              <div onClick={() => setSelected({ ...m })}>
+                {m.client_partant && <div style={{ fontSize: 11, color: '#6B6A65', marginBottom: 8 }}>👤 {m.client_partant}</div>}
+                <div style={{ fontSize: 11, color: '#6B6A65', marginBottom: 8 }}>{m.assigne_a || <em style={{ opacity: .5 }}>Non assigné</em>}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, height: 4, background: '#F1EFE8', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#639922' : '#EF9F27', transition: 'width .3s' }} />
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: pct === 100 ? '#3B6D11' : '#BA7517' }}>{done}/{CHECKS_LIST.length}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 500, color: pct === 100 ? '#3B6D11' : '#BA7517' }}>{done}/{CHECKS.length}</span>
               </div>
             </div>
           )
         })}
-        {filtered.length === 0 && <div style={{ gridColumn: '1/-1', padding: 40, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucun check ménage</div>}
+        {filtered.length === 0 && <div style={{ gridColumn: '1/-1', padding: 40, textAlign: 'center', color: '#9C9B96', fontSize: 12 }}>Aucun check</div>}
       </div>
-
       {showForm && (
-        <Modal title="Nouveau check ménage" onClose={() => setShowForm(false)}>
+        <Modal title="Nouveau check" onClose={() => setShowForm(false)}>
           <Field label="Emplacement *">
             <Select value={form.emplacement_id} onChange={v => setForm(f => ({ ...f, emplacement_id: v }))}>
               <option value="">Choisir…</option>
@@ -605,13 +716,13 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             </Select>
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Client partant"><Input value={form.client_partant} onChange={v => setForm(f => ({ ...f, client_partant: v }))} placeholder="Nom" /></Field>
-            <Field label="Heure de départ"><Input type="time" value={form.heure_depart} onChange={v => setForm(f => ({ ...f, heure_depart: v }))} /></Field>
+            <Field label="Client"><Input value={form.client_partant} onChange={v => setForm(f => ({ ...f, client_partant: v }))} placeholder="Nom" /></Field>
+            <Field label="Heure d'arrivée"><Input type="time" value={form.heure_depart} onChange={v => setForm(f => ({ ...f, heure_depart: v }))} /></Field>
           </div>
           <Field label="Assigné à">
             <Select value={form.assigne_a} onChange={v => setForm(f => ({ ...f, assigne_a: v }))}>
               <option value="">Non assigné</option>
-              {TECHNICIENS.map(t => <option key={t}>{t}</option>)}
+              {RECEPTION.map(t => <option key={t}>{t}</option>)}
             </Select>
           </Field>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
@@ -620,18 +731,16 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
           </div>
         </Modal>
       )}
-
       {selected && (
-        <Modal title={`Check ménage — Empl. ${selected.emplacements?.numero}`} onClose={() => { setSelected(null); onUpdate() }}>
+        <Modal title={`Check — Empl. ${selected.emplacements?.numero}`} onClose={() => { setSelected(null); onUpdate() }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <Pill label={selected.statut} />
             {selected.assigne_a && <span style={{ background: '#E6F1FB', color: '#185FA5', border: '0.5px solid #85B7EB', borderRadius: 20, padding: '2px 9px', fontSize: 11 }}>{selected.assigne_a}</span>}
           </div>
-          {selected.client_partant && <div style={{ background: '#F7F6F3', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: 12, color: '#6B6A65' }}>Client partant : <strong>{selected.client_partant}</strong> à {selected.heure_depart || '—'}</div>}
-
+          {selected.client_partant && <div style={{ background: '#F7F6F3', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: 12, color: '#6B6A65' }}>Client : <strong>{selected.client_partant}</strong></div>}
           {(() => {
-            const done = CHECKS.filter(c => selected[c.key]).length
-            const pct = Math.round(done / CHECKS.length * 100)
+            const done = CHECKS_LIST.filter(c => selected[c.key]).length
+            const pct = Math.round(done / CHECKS_LIST.length * 100)
             return (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B6A65', marginBottom: 5 }}>
@@ -644,9 +753,8 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
               </div>
             )
           })()}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {CHECKS.map(c => (
+            {CHECKS_LIST.map(c => (
               <div key={c.key} onClick={() => toggleCheck(c.key)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: `0.5px solid ${selected[c.key] ? '#97C459' : 'rgba(0,0,0,0.1)'}`, borderRadius: 8, cursor: 'pointer', background: selected[c.key] ? '#EAF3DE' : '#fff', transition: 'all .15s' }}>
                 <div style={{ width: 20, height: 20, borderRadius: 5, border: `1.5px solid ${selected[c.key] ? '#639922' : 'rgba(0,0,0,0.2)'}`, background: selected[c.key] ? '#639922' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
@@ -661,7 +769,7 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
             <Field label="Observations"><Textarea value={selected.observations || ''} onChange={v => setSelected(s => ({ ...s, observations: v }))} placeholder="Problèmes constatés, dommages…" rows={2} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
-            <Btn danger onClick={() => deleteMenage(selected.id)}><i className="ti ti-trash" />Supprimer</Btn>
+            <Btn danger onClick={async () => { await supabase.from('checks_menage').delete().eq('id', selected.id); onUpdate(); setSelected(null); toast('Check supprimé !') }}><i className="ti ti-trash" />Supprimer</Btn>
             <Btn onClick={() => { setSelected(null); onUpdate() }}>Fermer</Btn>
           </div>
         </Modal>
@@ -670,28 +778,13 @@ const Menage = ({ menages, emplacements, onUpdate, toast }) => {
   )
 }
 
-// ── Commentaires ──────────────────────────────────────────────────────────────
 const Commentaires = ({ commentaires, emplacements, onUpdate, toast }) => {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ client: '', emplacement_id: '', note: 5, source: 'Google', commentaire: '', date_commentaire: new Date().toISOString().split('T')[0] })
-
   const avg = commentaires.length ? (commentaires.reduce((a, c) => a + c.note, 0) / commentaires.length).toFixed(1) : '—'
-
-  const save = async () => {
-    await supabase.from('commentaires').insert([form])
-    setShowForm(false); onUpdate(); toast('Commentaire ajouté !')
-  }
-
-  const toggleRepondu = async (id, val) => {
-    await supabase.from('commentaires').update({ repondu: !val }).eq('id', id)
-    onUpdate()
-  }
-
-  const Stars = ({ n }) => (
-    <span style={{ color: '#EF9F27', fontSize: 13, letterSpacing: 1 }}>
-      {'★'.repeat(n)}{'☆'.repeat(5 - n)}
-    </span>
-  )
+  const save = async () => { await supabase.from('commentaires').insert([form]); setShowForm(false); onUpdate(); toast('Commentaire ajouté !') }
+  const toggleRepondu = async (id, val) => { await supabase.from('commentaires').update({ repondu: !val }).eq('id', id); onUpdate() }
+  const Stars = ({ n }) => <span style={{ color: '#EF9F27', fontSize: 13, letterSpacing: 1 }}>{'★'.repeat(n)}{'☆'.repeat(5 - n)}</span>
 
   return (
     <div className="fade-in">
@@ -718,11 +811,9 @@ const Commentaires = ({ commentaires, emplacements, onUpdate, toast }) => {
           })}
         </div>
       </div>
-
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <Btn primary onClick={() => setShowForm(true)}><i className="ti ti-plus" />Ajouter un avis</Btn>
       </div>
-
       {commentaires.map(c => (
         <div key={c.id} style={{ background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
@@ -732,24 +823,15 @@ const Commentaires = ({ commentaires, emplacements, onUpdate, toast }) => {
             </div>
             <div style={{ textAlign: 'right' }}>
               <Stars n={c.note} />
-              <div style={{ marginTop: 3 }}>
-                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#E6F1FB', color: '#185FA5' }}>{c.source}</span>
-              </div>
+              <div style={{ marginTop: 3 }}><span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#E6F1FB', color: '#185FA5' }}>{c.source}</span></div>
             </div>
           </div>
           <div style={{ fontSize: 12, color: '#6B6A65', lineHeight: 1.6, marginBottom: 10 }}>{c.commentaire}</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => toggleRepondu(c.id, c.repondu)} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-              background: c.repondu ? '#EAF3DE' : '#fff', color: c.repondu ? '#3B6D11' : '#6B6A65',
-              border: c.repondu ? '0.5px solid #97C459' : '0.5px solid rgba(0,0,0,0.15)'
-            }}>
-              <i className={`ti ${c.repondu ? 'ti-check' : 'ti-corner-up-left'}`} />{c.repondu ? 'Répondu' : 'Marquer répondu'}
-            </button>
-          </div>
+          <button onClick={() => toggleRepondu(c.id, c.repondu)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: 'pointer', background: c.repondu ? '#EAF3DE' : '#fff', color: c.repondu ? '#3B6D11' : '#6B6A65', border: c.repondu ? '0.5px solid #97C459' : '0.5px solid rgba(0,0,0,0.15)' }}>
+            <i className={`ti ${c.repondu ? 'ti-check' : 'ti-corner-up-left'}`} />{c.repondu ? 'Répondu' : 'Marquer répondu'}
+          </button>
         </div>
       ))}
-
       {showForm && (
         <Modal title="Ajouter un commentaire" onClose={() => setShowForm(false)}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -783,12 +865,12 @@ const Commentaires = ({ commentaires, emplacements, onUpdate, toast }) => {
   )
 }
 
-// ── App principale ────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState('dashboard')
   const [emplacements, setEmplacements] = useState([])
   const [interventions, setInterventions] = useState([])
   const [menages, setMenages] = useState([])
+  const [checks, setChecks] = useState([])
   const [commentaires, setCommentaires] = useState([])
   const [loading, setLoading] = useState(true)
   const [toastMsg, setToastMsg] = useState(null)
@@ -796,15 +878,17 @@ export default function App() {
   const toast = (msg) => setToastMsg(msg)
 
   const load = useCallback(async () => {
-    const [e, i, m, c] = await Promise.all([
+    const [e, i, m, ch, c] = await Promise.all([
       supabase.from('emplacements').select('*').order('numero'),
       supabase.from('interventions').select('*, emplacements(numero, modele)').order('created_at', { ascending: false }),
+      supabase.from('menages').select('*, emplacements(numero, modele)').order('created_at', { ascending: false }),
       supabase.from('checks_menage').select('*, emplacements(numero, modele)').order('created_at', { ascending: false }),
       supabase.from('commentaires').select('*, emplacements(numero)').order('date_commentaire', { ascending: false }),
     ])
     setEmplacements(e.data || [])
     setInterventions(i.data || [])
     setMenages(m.data || [])
+    setChecks(ch.data || [])
     setCommentaires(c.data || [])
     setLoading(false)
   }, [])
@@ -814,11 +898,12 @@ export default function App() {
   const counts = {
     interventions: interventions.filter(i => i.statut !== 'Terminé').length,
     menage: menages.filter(m => m.statut !== 'Terminé').length,
+    checks: checks.filter(c => c.statut !== 'Terminé').length,
     commentaires: commentaires.filter(c => !c.repondu).length,
     dashboard: 0, plan: 0,
   }
 
-  const PAGE_TITLES = { dashboard: 'Tableau de bord', plan: 'Plan du camping', interventions: 'Interventions techniques', menage: 'Checks ménage', commentaires: 'Commentaires clients' }
+  const PAGE_TITLES = { dashboard: 'Tableau de bord', plan: 'Plan du camping', interventions: 'Interventions techniques', menage: 'Ménage', checks: 'Checks', commentaires: 'Commentaires clients' }
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12, color: '#9C9B96' }}>
@@ -834,15 +919,14 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{ background: '#fff', borderBottom: '0.5px solid rgba(0,0,0,0.1)', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>{PAGE_TITLES[page]}</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn small onClick={load}><i className="ti ti-refresh" />Actualiser</Btn>
-          </div>
+          <Btn small onClick={load}><i className="ti ti-refresh" />Actualiser</Btn>
         </div>
         <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-          {page === 'dashboard' && <Dashboard emplacements={emplacements} interventions={interventions} menages={menages} commentaires={commentaires} setPage={setPage} />}
+          {page === 'dashboard' && <Dashboard emplacements={emplacements} interventions={interventions} menages={menages} checks={checks} commentaires={commentaires} setPage={setPage} />}
           {page === 'plan' && <Plan emplacements={emplacements} onUpdate={load} toast={toast} />}
           {page === 'interventions' && <Interventions interventions={interventions} emplacements={emplacements} onUpdate={load} toast={toast} />}
           {page === 'menage' && <Menage menages={menages} emplacements={emplacements} onUpdate={load} toast={toast} />}
+          {page === 'checks' && <Checks checks={checks} emplacements={emplacements} onUpdate={load} toast={toast} />}
           {page === 'commentaires' && <Commentaires commentaires={commentaires} emplacements={emplacements} onUpdate={load} toast={toast} />}
         </div>
       </div>
